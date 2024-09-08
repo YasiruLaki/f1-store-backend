@@ -43,7 +43,7 @@ exports.handler = async (event) => {
         };
     }
 
-    const { productID, name, shortName, price, category, description, tags, images } = parsedBody;
+    const { productID, name, shortName, price, salePrice, category, description, tags, images } = parsedBody;
 
     if (!productID || !name || !shortName || !price || !category) {
         return {
@@ -71,7 +71,7 @@ exports.handler = async (event) => {
             // Updating an existing product
             const existingProduct = await Product.findOneAndUpdate(
                 { productID: productID },
-                { name, shortName, price, category, description, tags, images },
+                { name, shortName, price, salePrice, category, description, tags, images },
                 { new: true }
             );
 
