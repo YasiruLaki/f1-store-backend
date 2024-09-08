@@ -8,21 +8,10 @@ exports.handler = async (event) => {
             statusCode: 200,
             headers: {
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'OPTIONS, POST, GET',
+                'Access-Control-Allow-Methods': 'OPTIONS, POST, PUT, GET',
                 'Access-Control-Allow-Headers': 'Content-Type',
             },
             body: JSON.stringify({}),
-        };
-    }
-
-    // Handle method not allowed
-    if (event.httpMethod !== 'POST') {
-        return {
-            statusCode: 405,
-            body: JSON.stringify({ message: 'Method Not Allowed' }),
-            headers: {
-                'Access-Control-Allow-Origin': '*',
-            },
         };
     }
 
@@ -54,16 +43,12 @@ exports.handler = async (event) => {
         };
     }
 
-    const { name, shortName, price, category, description, tags, images } = parsedBody;
+    const { productID, name, shortName, price, category, description, tags, images } = parsedBody;
 
-    // Ensure `tags` is parsed correctly if it's a string
-    const parsedTags = Array.isArray(tags) ? tags : JSON.parse(tags || '[]');
-
-    // Validate required fields
-    if (!name || !shortName || !price || !category || !description) {
+    if (!productID || !name || !shortName || !price || !category) {
         return {
             statusCode: 400,
-            body: JSON.stringify({ error: 'Missing required fields' }),
+            body: JSON.stringify({ message: 'Missing required fields' }),
             headers: {
                 'Access-Control-Allow-Origin': '*',
             },
@@ -71,37 +56,59 @@ exports.handler = async (event) => {
     }
 
     try {
-        // Create and save a new product document
-        const newProduct = new Product({
-            name,
-            shortName,
-            price,
-            category,
-            description,
-            tags: parsedTags, // Use the parsed tags
-            images, // Include image URLs
-        });
-        await newProduct.save();
+        if (event.httpMethod === 'POST') {
+            // Creating a new product
+            const newProduct = new Product({ productID, name, shortName, price, category, description, tags, images, createdAt: new Date(), orders: 0, rating: 0, salePrice: 0 });
+            await newProduct.save();
+            return {
+                statusCode: 201,
+                body: JSON.stringify({ message: 'Product created successfully', product: newProduct }),
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                },
+            };
+        } else if (event.httpMethod === 'PUT') {
+            // Updating an existing product
+            const existingProduct = await Product.findOneAndUpdate(
+                { productID: productID },
+                { name, shortName, price, category, description, tags, images },
+                { new: true }
+            );
 
+            if (!existingProduct) {
+                return {
+                    statusCode: 404,
+                    body: JSON.stringify({ message: 'Product not found' }),
+                    headers: {
+                        'Access-Control-Allow-Origin': '*',
+                    },
+                };
+            }
+
+            return {
+                statusCode: 200,
+                body: JSON.stringify({ message: 'Product updated successfully', product: existingProduct }),
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                },
+            };
+        } else {
+            return {
+                statusCode: 405,
+                body: JSON.stringify({ message: 'Method Not Allowed' }),
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                },
+            };
+        }
+    } catch (error) {
+        console.error('Error processing request:', error);
         return {
-            statusCode: 200,
-            headers: {
-              'Access-Control-Allow-Origin': '*',
-              'Access-Control-Allow-Methods': 'OPTIONS, POST, GET',
-              'Access-Control-Allow-Headers': 'Content-Type',
-            },
-            body: JSON.stringify({ message: 'Product saved successfully!' }),
-          };
-        } catch (error) {
-          console.error('Error:', error);
-          return {
             statusCode: 500,
-            headers: {
-              'Access-Control-Allow-Origin': '*',
-              'Access-Control-Allow-Methods': 'OPTIONS, POST, GET',
-              'Access-Control-Allow-Headers': 'Content-Type',
-            },
             body: JSON.stringify({ message: 'Internal Server Error' }),
-          };
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+            },
+        };
     }
 };
