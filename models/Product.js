@@ -2,10 +2,13 @@ const mongoose = require('mongoose');
 
 const productSchema = new mongoose.Schema({
   productID: {type:String, required:true},
+  stripeProductId: { type: String, required: true },
+  stripePriceId: { type: String, required: true },
   name: { type: String, required: true },
   shortName: { type: String, required: true },
   price: { type: Number, required: true },
   category: { type: String, required: true },
+  sizes: [String],
   description: { type: String, required: true },
   tags: [String],
   images: [String], // Store paths to images

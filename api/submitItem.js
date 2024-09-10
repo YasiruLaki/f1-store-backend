@@ -43,7 +43,7 @@ exports.handler = async (event) => {
         };
     }
 
-    const { productID, name, shortName, price, salePrice, category, description, tags, images } = parsedBody;
+    const { productID, name, shortName, price, salePrice, category, sizes, description, tags, images } = parsedBody;
 
     if (!productID || !name || !shortName || !price || !category) {
         return {
@@ -58,7 +58,7 @@ exports.handler = async (event) => {
     try {
         if (event.httpMethod === 'POST') {
             // Creating a new product
-            const newProduct = new Product({ productID, name, shortName, price, category, description, tags, images, createdAt: new Date(), orders: 0, rating: 0, salePrice: 0 });
+            const newProduct = new Product({ productID, name, shortName, price, category, sizes, description, tags, images, createdAt: new Date(), orders: 0, rating: 0, salePrice: 0 });
             await newProduct.save();
             return {
                 statusCode: 201,
@@ -71,7 +71,7 @@ exports.handler = async (event) => {
             // Updating an existing product
             const existingProduct = await Product.findOneAndUpdate(
                 { productID: productID },
-                { name, shortName, price, salePrice, category, description, tags, images },
+                { name, shortName, price, salePrice, category, sizes, description, tags, images },
                 { new: true }
             );
 
