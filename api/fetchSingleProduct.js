@@ -22,8 +22,9 @@ exports.handler = async function (event, context) {
       };
     }
 
-    // Fetch product based on the provided productID
-    const product = await Product.findOne({ productID }).exec(); // Use findOne to get a single product by productID
+    const product = await Product.findOne({ productID }, 'name price salePrice category images sizes rating description')
+      .lean() 
+      .exec();
 
     if (!product) {
       return {
