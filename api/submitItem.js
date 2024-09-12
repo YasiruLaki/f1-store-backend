@@ -15,19 +15,7 @@ exports.handler = async (event) => {
         };
     }
 
-    // Connect to the database
-    try {
-        await connectToDB();
-    } catch (dbError) {
-        console.error('Database connection error:', dbError);
-        return {
-            statusCode: 500,
-            body: JSON.stringify({ error: 'Database connection error', details: dbError.message }),
-            headers: {
-                'Access-Control-Allow-Origin': '*',
-            },
-        };
-    }
+
 
     // Parse JSON request body
     let parsedBody;
