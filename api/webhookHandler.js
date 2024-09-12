@@ -113,7 +113,7 @@ exports.handler = async (event) => {
             shipping: session.total_details.amount_shipping / 100,
             totalAmount: session.amount_total / 100,
             paymentIntentId: session.payment_intent || 'Unknown Payment Intent',
-            status: 'completed',
+            status: 'Confirmed',
             createdAt: new Date(),
         };
 
