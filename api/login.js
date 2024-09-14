@@ -1,9 +1,11 @@
 const { MongoClient } = require('mongodb');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs'); // Use bcryptjs instead of bcrypt
+const bcrypt = require('bcryptjs');
 
 const uri = process.env.MONGODB_URI;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+
+let isConnected = false; // Track database connection status
 
 const headers = {
   'Access-Control-Allow-Origin': '*', // Replace * with your frontend URL in production
@@ -11,93 +13,64 @@ const headers = {
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
-exports.handler = async (event) => {
-  console.log('Received event:', JSON.stringify(event, null, 2));
+// Helper function for standard responses
+const createResponse = (statusCode, body) => ({
+  statusCode,
+  headers,
+  body: JSON.stringify(body),
+});
 
+exports.handler = async (event) => {
+  console.log('Received event:', event.httpMethod);
+
+  // Handle CORS preflight request
   if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers,
-      body: '',
-    };
+    return createResponse(200, '');
   }
 
   if (event.httpMethod === 'POST') {
     console.log('Handling POST request');
     try {
       const { email, password } = JSON.parse(event.body);
-      console.log('Received email:', email);
-      console.log('Received password:', password);
 
       if (!email || !password) {
-        console.log('Error: Email or password missing');
-        return {
-          statusCode: 400,
-          headers,
-          body: JSON.stringify({ error: 'Email and password are required' }),
-        };
+        return createResponse(400, { error: 'Email and password are required' });
       }
 
-      await client.connect();
+      // Connect to the database if not connected
+      if (!isConnected) {
+        await client.connect();
+        isConnected = true;
+      }
+
       const database = client.db('admin-login');
       const users = database.collection('users');
 
       const user = await users.findOne({ email });
-      console.log('User found:', user);
 
       if (!user) {
-        console.log('Error: User not found');
-        return {
-          statusCode: 401,
-          headers,
-          body: JSON.stringify({ error: 'Invalid email or password' }),
-        };
+        return createResponse(401, { error: 'Invalid email or password' });
       }
 
       const storedHash = user.password.replace(/^\$2y\$/, '$2a$');
       const isPasswordCorrect = bcrypt.compareSync(password, storedHash);
-      console.log('Password comparison result:', isPasswordCorrect);
 
       if (!isPasswordCorrect) {
-        console.log('Error: Invalid password');
-        return {
-          statusCode: 401,
-          headers,
-          body: JSON.stringify({ error: 'Invalid email or password' }),
-        };
+        return createResponse(401, { error: 'Invalid email or password' });
       }
 
       const token = jwt.sign({ email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
-      console.log('Token generated:', token);
 
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({ message: 'Login successful', token }),
-      };
+      return createResponse(200, { message: 'Login successful', token });
     } catch (error) {
       console.error('Error processing POST request:', error);
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({ error: 'Internal Server Error' }),
-      };
-    } finally {
-      await client.close();
+      return createResponse(500, { error: 'Internal Server Error' });
     }
   }
 
   if (event.httpMethod === 'GET') {
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({ message: 'GET request received' }),
-    };
+    return createResponse(200, { message: 'GET request received' });
   }
 
-  return {
-    statusCode: 405,
-    headers,
-    body: JSON.stringify({ error: 'Method not allowed' }),
-  };
+  return createResponse(405, { error: 'Method not allowed' });
 };

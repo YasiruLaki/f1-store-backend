@@ -79,6 +79,7 @@ exports.handler = async function(event) {
                 payment_method_types: session.payment_method_types,
                 customer_details: session.customer_details,
                 receipt_url: order.receiptUrl,
+                items: order.items,
             }),
         };
     } catch (error) {

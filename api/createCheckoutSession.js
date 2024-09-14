@@ -102,8 +102,8 @@ exports.handler = async (event) => {
               },
             discounts: [], // Add any discount data if needed
             allow_promotion_codes: true, 
-            success_url: `http://localhost:3000/order-success?session_id={CHECKOUT_SESSION_ID}&orderID=${encodedOrderID}`, // Replace with your success URL
-            cancel_url: 'http://localhost:8888/cancel', // Replace with your cancel URL
+            success_url: `https://f1-madness-store.netlify.app/order-success?session_id={CHECKOUT_SESSION_ID}&orderID=${encodedOrderID}`, // Replace with your success URL
+            cancel_url: 'https://f1-madness-store.netlify.app/cancel', // Replace with your cancel URL
         });
 
         return {

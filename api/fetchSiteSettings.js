@@ -2,60 +2,47 @@ const mongoose = require('mongoose');
 const connectToDB = require('./connectToDB');
 const SiteSettings = require('../models/SiteSettings');
 
-exports.handler = async function (event, context) {
+// Cache database connection between invocations
+let isDBConnected = false;
+
+const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'OPTIONS, GET, POST, PUT',
+    'Access-Control-Allow-Headers': 'Content-Type',
+};
+
+// Helper function for standard responses
+const createResponse = (statusCode, body) => ({
+    statusCode,
+    headers: corsHeaders,
+    body: JSON.stringify(body),
+});
+
+exports.handler = async function (event) {
     // CORS Preflight Check
     if (event.httpMethod === 'OPTIONS') {
-        return {
-            statusCode: 200,
-            headers: {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'OPTIONS, GET, POST, PUT',
-                'Access-Control-Allow-Headers': 'Content-Type',
-            },
-            body: JSON.stringify({}),
-        };
+        return createResponse(200, {});
     }
 
-    // Connect to the database
-    try {
-        await connectToDB();
-    } catch (dbError) {
-        console.error('Database connection error:', dbError);
-        return {
-            statusCode: 500,
-            headers: {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'OPTIONS, GET, POST, PUT',
-                'Access-Control-Allow-Headers': 'Content-Type',
-            },
-            body: JSON.stringify({ error: 'Failed to connect to the database', details: dbError.message }),
-        };
+    // Connect to the database if not already connected
+    if (!isDBConnected) {
+        try {
+            await connectToDB();
+            isDBConnected = true;
+        } catch (dbError) {
+            console.error('Database connection error:', dbError);
+            return createResponse(500, { error: 'Failed to connect to the database', details: dbError.message });
+        }
     }
 
     // Handle GET request: Fetch site settings
     if (event.httpMethod === 'GET') {
         try {
-            const siteSettings = await SiteSettings.findOne({}).exec();
-            return {
-                statusCode: 200,
-                headers: {
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Methods': 'OPTIONS, GET, POST, PUT',
-                    'Access-Control-Allow-Headers': 'Content-Type',
-                },
-                body: JSON.stringify(siteSettings),
-            };
+            const siteSettings = await SiteSettings.findOne({}).lean().exec();
+            return createResponse(200, siteSettings);
         } catch (error) {
             console.error('Error fetching site settings:', error);
-            return {
-                statusCode: 500,
-                headers: {
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Methods': 'OPTIONS, GET, POST, PUT',
-                    'Access-Control-Allow-Headers': 'Content-Type',
-                },
-                body: JSON.stringify({ error: 'Error fetching site settings', details: error.message }),
-            };
+            return createResponse(500, { error: 'Error fetching site settings', details: error.message });
         }
     }
 
@@ -63,46 +50,21 @@ exports.handler = async function (event, context) {
     if (event.httpMethod === 'PUT') {
         try {
             const parsedBody = JSON.parse(event.body);
-
-            // Verify the parsedBody structure
             console.log('Parsed Body:', parsedBody);
 
             const updatedSettings = await SiteSettings.findOneAndUpdate({}, parsedBody, {
                 new: true,
                 upsert: true,
+                lean: true, // Return a plain object
             }).exec();
 
-            return {
-                statusCode: 200,
-                headers: {
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Methods': 'OPTIONS, GET, POST, PUT',
-                    'Access-Control-Allow-Headers': 'Content-Type',
-                },
-                body: JSON.stringify(updatedSettings),
-            };
+            return createResponse(200, updatedSettings);
         } catch (error) {
             console.error('Error updating site settings:', error);
-            return {
-                statusCode: 500,
-                headers: {
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Methods': 'OPTIONS, GET, POST, PUT',
-                    'Access-Control-Allow-Headers': 'Content-Type',
-                },
-                body: JSON.stringify({ error: 'Error updating site settings', details: error.message }),
-            };
+            return createResponse(500, { error: 'Error updating site settings', details: error.message });
         }
     }
 
     // Method Not Allowed
-    return {
-        statusCode: 405,
-        headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'OPTIONS, GET, POST, PUT',
-            'Access-Control-Allow-Headers': 'Content-Type',
-        },
-        body: JSON.stringify({ error: 'Method Not Allowed' }),
-    };
+    return createResponse(405, { error: 'Method Not Allowed' });
 };

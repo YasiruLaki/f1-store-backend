@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const productSchema = new mongoose.Schema({
-  productID: {type:String, required:true},
+  productID: {type:String, required:true, unique:true},
   stripeProductId: { type: String, required: true },
   stripePriceId: { type: String, required: true },
   name: { type: String, required: true },
@@ -16,6 +16,14 @@ const productSchema = new mongoose.Schema({
   orders: { type: Number, default: 0 },
   rating: { type: Number, default: 0 },
   salePrice: { type: Number, default: 0 },
+  stripePriceId: {
+    type: String, // Change from required to optional
+    required: false,
+},
+stripeProductId: {
+    type: String, // Change from required to optional
+    required: false,
+}
 });
 
 // Check if the model is already defined to avoid the OverwriteModelError
