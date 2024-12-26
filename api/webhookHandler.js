@@ -2,6 +2,7 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const mongoose = require('mongoose');
 const connectToDB = require('./connectToDB');
 const Order = require('../models/Order');
+const nodemailer = require('nodemailer');
 
 // Use the Stripe Webhook Secret
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -56,9 +57,6 @@ exports.handler = async (event) => {
         const productIDs = session.metadata.productIDs ? session.metadata.productIDs.split(',') : [];
         const sizes = session.metadata.sizes ? session.metadata.sizes.split(',') : [];
         const images = session.metadata.images ? session.metadata.images.split(',') : [];
-
-        // Debugging log to check session object
-        console.log('Stripe session data:', JSON.stringify(session));
 
         try {
             await connectToDB();
@@ -120,6 +118,7 @@ exports.handler = async (event) => {
         try {
             const savedOrder = await Order.create(order);
             console.log('Order saved successfully:', savedOrder); // Log success
+
             return {
                 statusCode: 200,
                 body: JSON.stringify({ success: true }),
@@ -140,7 +139,7 @@ exports.handler = async (event) => {
         }
     }
 
-    // Handle charge.updated event
+    // Handle charge.updated event to update receipt URL and send email
     if (stripeEvent.type === 'charge.updated') {
         const charge = stripeEvent.data.object;
 
@@ -150,9 +149,45 @@ exports.handler = async (event) => {
                 const order = await Order.findOne({ paymentIntentId: charge.payment_intent });
 
                 if (order) {
+                    // Update the order with the receipt URL
                     order.receiptUrl = charge.receipt_url;
                     await order.save();
                     console.log('Receipt URL updated successfully:', order);
+
+                    // Send the email with receipt URL
+                    const transporter = nodemailer.createTransport({
+                        service: 'Gmail', // or another email provider
+                        auth: {
+                            user: process.env.EMAIL_USER,
+                            pass: process.env.EMAIL_PASS,
+                        },
+                        debug: true, 
+                    });
+
+                    const mailOptions = {
+                        from: 'admin@pitlaneperformances.com', // Sender's email address
+                        to: 'orders@pitlaneperformances.com', // Recipient email address
+                        subject: 'New Order Received! - ' + order.orderID,
+                        html: `
+                            <h2>Order Details</h2>
+                            <p><strong>Order ID:</strong> ${order.orderID}</p>
+                            <p><strong>Customer Name:</strong> ${order.customer.name}</p>
+                            <p><strong>Customer Email:</strong> ${order.customer.email}</p>
+                            <p><strong>Customer Address:</strong> ${order.customer.address}</p>
+                            <p><strong>Items:</strong> ${JSON.stringify(order.items)}</p>
+                            <p><strong>Total Amount:</strong> $${order.totalAmount}</p>
+                            <p><strong>Receipt URL:</strong> <a href="${order.receiptUrl}">View Receipt</a></p>
+                        `,
+                    };
+
+                    // Send email
+                    transporter.sendMail(mailOptions, (error, info) => {
+                        if (error) {
+                            console.error('Error sending email:', error);
+                        } else {
+                            console.log('Email sent:', info.response);
+                        }
+                    });
                 } else {
                     console.warn('Order not found for payment intent:', charge.payment_intent);
                 }

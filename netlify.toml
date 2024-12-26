@@ -9,3 +9,6 @@
 [[schedule]]
 function = "warmUp"
 cron = "*/15 * * * *"
+
+[functions.submitItem]
+  timeout = 30  # timeout set to 30 seconds
