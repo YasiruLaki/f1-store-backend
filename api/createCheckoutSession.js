@@ -59,11 +59,12 @@ exports.handler = async (event) => {
             price_data: {
                 currency: 'usd', // Change to your currency
                 product_data: {
-                    name: item.size && item.size.trim() !== '' ? `${item.name} (Size: ${item.size})` : item.name,
+                    name: item.size && item.size.size ? `${item.name} (Size: ${item.size.size})` : item.name, // Default to item name if no size
                     images: [item.images[0]], // Adjust as needed
                     metadata: {
                         productID: item.productID,
-                        size: item.size,
+                        size: item.size ? item.size.size : 'No Size', // Fallback to 'No Size' if size is missing
+                        printfulId: item.size ? item.size.printfulId : 'N/A' // Fallback if size is missing
                     },
                 },
                 unit_amount: unitAmount, // Convert to cents
@@ -91,7 +92,7 @@ exports.handler = async (event) => {
             metadata: {
                 orderID,
                 productIDs: cart.map(item => item.productID).join(','),
-                sizes: cart.map(item => item.size).join(','),
+                sizes: cart.map(item => item.size?.size).join(','),
                 images: cart.map(item => item.images[0]).join(','),
             }, 
             mode: 'payment',
