@@ -9,6 +9,7 @@
     "@middy/core": "^5.4.7",
     "@middy/http-json-body-parser": "^5.4.7",
     "@middy/http-multipart-body-parser": "^5.4.7",
+    "axios": "^1.7.9",
     "bcryptjs": "^2.4.3",
     "busboy": "^1.6.0",
     "cloudinary": "^2.4.0",
