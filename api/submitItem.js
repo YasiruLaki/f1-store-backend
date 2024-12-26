@@ -52,7 +52,7 @@ exports.handler = async (event) => {
       },
     };
   }
-  if (sizes && sizes.some((size) => !size.name || !size.printfulId)) {
+  if (sizes && sizes.some((size) => !size.size || !size.printfulId)) {
     return {
       statusCode: 400,
       body: JSON.stringify({ message: 'Each size must include a name and printfulId' }),
