@@ -10,7 +10,7 @@ const productSchema = new mongoose.Schema({
   category: { type: String, required: true },
   sizes: [
     {
-      name: { type: String, required: true },
+      size: { type: String, required: true },
       printfulId: { type: String, required: true },
     },
   ],
